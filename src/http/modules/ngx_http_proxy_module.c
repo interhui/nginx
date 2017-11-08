@@ -960,7 +960,10 @@ ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
     {
         add = 7;
         port = 80;
-
+    } else if (proxy.len > 5
+        && ngx_strncasecmp(proxy.data, (u_char *) "ws://", 5) == 0)
+        add = 5;
+        port = 80;
 #if (NGX_HTTP_SSL)
 
     } else if (proxy.len > 8
@@ -969,7 +972,12 @@ ngx_http_proxy_eval(ngx_http_request_t *r, ngx_http_proxy_ctx_t *ctx,
         add = 8;
         port = 443;
         r->upstream->ssl = 1;
-
+    } else if (proxy.len > 6
+               && ngx_strncasecmp(proxy.data, (u_char *) "wss://", 6) == 0)
+    {
+        add = 6;
+        port = 443;
+        r->upstream->ssl = 1;
 #endif
 
     } else {
@@ -3658,6 +3666,23 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #else
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "https protocol requires SSL support");
+        return NGX_CONF_ERROR;
+#endif
+
+    } else if (ngx_strncasecmp(url->data, (u_char *) "ws://", 5) == 0) {
+        add = 5;
+        port = 80;
+
+    } else if (ngx_strncasecmp(url->data, (u_char *) "wss://", 6) == 0) {
+
+#if (NGX_HTTP_SSL)
+        plcf->ssl = 1;
+
+        add = 6;
+        port = 443;
+#else
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "wss protocol requires SSL support");
         return NGX_CONF_ERROR;
 #endif
 
